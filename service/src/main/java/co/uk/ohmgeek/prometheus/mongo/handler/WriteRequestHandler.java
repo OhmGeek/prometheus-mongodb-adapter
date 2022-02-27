@@ -1,6 +1,6 @@
-package co.uk.ohmgeek.prometheus.vertx;
+package co.uk.ohmgeek.prometheus.mongo.handler;
 
-import co.uk.ohmgeek.prometheus.MongoTimeSeriesMetricStore;
+import co.uk.ohmgeek.prometheus.mongo.MongoTimeSeriesMetricStore;
 import prometheus.Remote;
 import prometheus.Types;
 
@@ -13,6 +13,7 @@ public class WriteRequestHandler extends BaseHandler<Remote.WriteRequest, Types.
     }
     @Override
     public Types.NullMessage serve(Remote.WriteRequest request) {
+        System.out.println(request);
         mongoTimeSeriesMetricStore.writeTimeSeries(request);
         return Types.NullMessage.newBuilder().build();
     }

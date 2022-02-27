@@ -1,5 +1,6 @@
-package co.uk.ohmgeek.prometheus;
+package co.uk.ohmgeek.prometheus.mongo;
 
+import com.google.inject.Inject;
 import com.mongodb.MongoCommandException;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoClient;
@@ -18,12 +19,13 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MongoTimeSeriesMetricStore {
-    private static final Logger logger = LoggerFactory.getLogger(MongoTimeSeriesMetricStore.class);
     public static final String DATABASE = "prometheus";
     public static final String COLLECTION = "prometheus";
+    private static final Logger logger = LoggerFactory.getLogger(MongoTimeSeriesMetricStore.class);
     private final MongoClient mongoClient;
     private final DocumentAdapter documentAdapter;
 
+    @Inject
     public MongoTimeSeriesMetricStore(MongoClient mongoClient, DocumentAdapter documentAdapter) {
         this.mongoClient = mongoClient;
         this.documentAdapter = documentAdapter;
@@ -57,15 +59,15 @@ public class MongoTimeSeriesMetricStore {
     }
 
     public void init() {
-            logger.info("Creating collection");
-            try {
-                mongoClient.getDatabase(DATABASE)
-                        .createCollection(COLLECTION, new CreateCollectionOptions()
-                                .timeSeriesOptions(new TimeSeriesOptions("timestamp").metaField("labels").granularity(TimeSeriesGranularity.MINUTES))
-                                .expireAfter(24, TimeUnit.HOURS));
-            } catch (MongoCommandException e) {
-                logger.info("skipping as collection exists");
-            }
+        logger.info("Creating collection");
+        try {
+            mongoClient.getDatabase(DATABASE)
+                    .createCollection(COLLECTION, new CreateCollectionOptions()
+                            .timeSeriesOptions(new TimeSeriesOptions("timestamp").metaField("labels").granularity(TimeSeriesGranularity.MINUTES))
+                            .expireAfter(24, TimeUnit.HOURS));
+        } catch (MongoCommandException e) {
+            logger.info("skipping as collection exists");
+        }
     }
 
     public void writeTimeSeries(Remote.WriteRequest request) {
@@ -79,7 +81,7 @@ public class MongoTimeSeriesMetricStore {
                 .map(InsertOneModel::new)
                 .toList();
 
-        if (collect.size() > 1) {
+        if (collect.size() > 0) {
             BulkWriteResult bulkWriteResult = timeSeriesCollection.bulkWrite(collect);
 
             logger.info("{} documents written", bulkWriteResult.getInsertedCount());
@@ -88,4 +90,5 @@ public class MongoTimeSeriesMetricStore {
             logger.info("Nothing to write. Ignoring.");
         }
     }
+
 }

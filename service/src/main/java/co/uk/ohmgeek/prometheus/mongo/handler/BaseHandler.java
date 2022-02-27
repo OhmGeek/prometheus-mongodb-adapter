@@ -1,8 +1,6 @@
-package co.uk.ohmgeek.prometheus.vertx;
+package co.uk.ohmgeek.prometheus.mongo.handler;
 
 import com.google.protobuf.AbstractMessage;
-import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.MessageOrBuilder;
 import com.google.protobuf.Parser;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
@@ -11,8 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xerial.snappy.Snappy;
 
-import java.io.IOException;
-
+/**
+ * A base handler for the Prometheus protocol.
+ *
+ * @param <T> The type of Protobuf Message to use as the request type
+ * @param <R> The type of protobuf message to use as the response type. If not specified, use {@link prometheus.Types.NullMessage}
+ */
 public abstract class BaseHandler<T extends AbstractMessage, R extends AbstractMessage> implements Handler<RoutingContext> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Parser<T> parser;
@@ -22,6 +24,7 @@ public abstract class BaseHandler<T extends AbstractMessage, R extends AbstractM
         this.parser = requestParser;
         this.shouldSendResponse = shouldSendResponse;
     }
+
     @Override
     public void handle(RoutingContext ctx) {
         try {
@@ -34,8 +37,12 @@ public abstract class BaseHandler<T extends AbstractMessage, R extends AbstractM
                         .setStatusCode(200)
                         .setChunked(true)
                         .end(Buffer.buffer(Snappy.compress(response.toByteArray())));
+            } else {
+                ctx.response()
+                        .setStatusCode(200)
+                        .end();
             }
-            logger.trace("Request received: {}", request);
+            logger.info("Request received: {}", request);
         } catch (Throwable e) {
             // Any error will fail the request.
             logger.error("Failed to invoke handler, msg={}", e.getMessage());
